@@ -98,3 +98,29 @@ resource "azurerm_key_vault" "KeyVault" {
     environment = "Test"
   }
 }
+resource "azurerm_key_vault_certificate" "SFCertificate" {
+  name     = "imported-sf-cert"
+  vault_uri = "${azurerm_key_vault.KeyVault.vault_uri}"
+
+  certificate {
+    contents = "${base64encode(file("certificate.pfx"))}"
+    password = "abcd"
+  }
+
+  certificate_policy {
+    issuer_parameters {
+      name = "Self"
+    }
+
+    key_properties {
+      exportable = true
+      key_size   = 4096
+      key_type   = "RSA"
+      reuse_key  = false
+    }
+
+    secret_properties {
+      content_type = "application/x-pkcs12"
+    }
+  }
+}
