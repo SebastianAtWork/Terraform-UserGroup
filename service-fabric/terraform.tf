@@ -99,7 +99,7 @@ resource "azurerm_key_vault" "KeyVault" {
   }
 }
 resource "azurerm_key_vault_certificate" "SFCertificate" {
-  name     = "imported-sf-cert"
+  name     = "ServiceFabricCert"
   vault_uri = "${azurerm_key_vault.KeyVault.vault_uri}"
 
   certificate {
@@ -122,5 +122,36 @@ resource "azurerm_key_vault_certificate" "SFCertificate" {
     secret_properties {
       content_type = "application/x-pkcs12"
     }
+  }
+}
+
+resource "azurerm_service_fabric_cluster" "SFCluster" {
+  name                 = "example-servicefabric"
+  resource_group_name  = "${azurerm_resource_group.ServiceFabricTest.name}"
+  location             = "${azurerm_resource_group.ServiceFabricTest.location}"
+  reliability_level    = "None"
+  upgrade_mode         = "Manual"
+  cluster_code_version = "6.4.644.9590"
+  vm_image             = "Windows"
+  management_endpoint  = "https://example:80"
+
+  node_type {
+    name                 = "first"
+    instance_count       = 1
+    is_primary           = true
+    client_endpoint_port = 2020
+    http_endpoint_port   = 80
+  }
+  certificate {
+    thumbprint = "${azurerm_key_vault_certificate.SFCertificate.thumbprint}"
+    x509_store_name = "My"
+  }
+client_certificate_thumbprint {
+  is_admin = true
+  thumbprint = "${azurerm_key_vault_certificate.SFCertificate.thumbprint}"
+}
+  reverse_proxy_certificate {
+    thumbprint = "${azurerm_key_vault_certificate.SFCertificate.thumbprint}"
+    x509_store_name = "My"
   }
 }
