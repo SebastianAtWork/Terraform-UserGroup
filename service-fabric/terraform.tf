@@ -6,14 +6,24 @@ terraform {
     access_key                   = "Cn79/XfEb3sp7dy4FCXhjOM5msLafiTIKOrQ8fpMt4TsrBsQOr0w2qMB9XmkfQLTtvpYk/k/LV10mQ/BrJ7uzA=="
   }
 }
+variable "client_secret" {}
+variable "tenant_id" {
+  default = "986cdd8d-afd0-476b-9659-8e9387599abb"
+}
 
 provider "azurerm" {
   version = "v1.24"
+  subscription_id = "e3441300-3ad3-4eca-8288-1f71a5778436"
+  client_id       = "http://Terraform"
+  client_secret   = "${var.client_secret}"
+  tenant_id       = "${var.tenant_id}"
 }
 provider "azuread" {
-  version = ""
+  subscription_id = "e3441300-3ad3-4eca-8288-1f71a5778436"
+  client_id       = "http://Terraform"
+  client_secret   = "${var.client_secret}"
+  tenant_id       = "${var.tenant_id}"
 }
-data "azurerm_client_config" "current" {}
 
 
 resource "azurerm_resource_group" "ServiceFabricTest" {
@@ -21,22 +31,8 @@ resource "azurerm_resource_group" "ServiceFabricTest" {
   name = "ServiceFabricTest"
 }
 
-resource "azuread_application" "ServiceFabricTestApp" {
-  name                       = "example"
-  homepage                   = "https://homepage"
-  identifier_uris            = ["http://uri"]
-  reply_urls                 = ["http://replyurl"]
-  available_to_other_tenants = false
-  oauth2_allow_implicit_flow = true
-}
-
-data "azurerm_azuread_application" "ServiceFabricTestAppReference"{
-  name = "${azuread_application.ServiceFabricTestApp.name}"
-}
-resource "azuread_service_principal" "TestAppServicePrincipal" {
-  application_id = "${data.azurerm_azuread_application.ServiceFabricTestAppReference.application_id}"
-
-  tags = ["example", "tags", "here"]
+data "azuread_service_principal" "TerraformServicePrincipal"{
+  display_name = "Terraform"
 }
 
 resource "azurerm_key_vault" "KeyVault" {
@@ -46,11 +42,11 @@ resource "azurerm_key_vault" "KeyVault" {
   "sku" {
     name = "standard"
   }
-  tenant_id = "${data.azurerm_client_config.current.tenant_id}"
+  tenant_id = "${var.tenant_id}"
 
    access_policy {
-    tenant_id = "${data.azurerm_client_config.current.tenant_id}"
-    object_id = "${azuread_service_principal.TestAppServicePrincipal.id}"
+    tenant_id = "${var.tenant_id}"
+    object_id = "${data.azuread_service_principal.TerraformServicePrincipal.id}"
 
     certificate_permissions = [
       "create",
